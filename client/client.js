@@ -1,6 +1,5 @@
 const inquirer = require("inquirer");
-// const getDepartments = require("./client_helper");
-const client_helper = require('./client_helper');
+const client_helper = require("./client_helper");
 
 const mainMenu = () =>
   new Promise((resolve, reject) => {
@@ -14,10 +13,10 @@ const mainMenu = () =>
             "View all departments",
             "View all roles",
             "View all employees",
-            "Add a department",
-            "Add a role",
-            "Add an employee",
-            "Update an employee role",
+            "Add department",
+            "Add role",
+            "Add employee",
+            "Update employee role",
             "Exit",
           ],
         },
@@ -30,7 +29,7 @@ const mainMenu = () =>
       });
   });
 
-const addDepartment = () =>
+const addDepartment = () => 
   inquirer.prompt([
     {
       type: "input",
@@ -39,7 +38,8 @@ const addDepartment = () =>
     },
   ]);
 
-const addRole = () =>
+
+const addRole = async (department_names) =>
   inquirer.prompt([
     {
       type: "input",
@@ -63,13 +63,13 @@ const addRole = () =>
       },
     },
     {
-      type: "input",
-      name: "department_id",
-      message: "Enter the department for this role:",
+      type: "list",
+      name: "department",
+      choices: department_names,
     },
   ]);
 
-const addEmployee = () =>
+const addEmployee = (managers, roles) =>
   inquirer.prompt([
     {
       type: "input",
@@ -82,14 +82,14 @@ const addEmployee = () =>
       message: "Enter the last name of the employee:",
     },
     {
-      type: "input",
-      name: "role_id",
-      message: "Enter the role for this employee:",
+      type: "list",
+      name: "role",
+      choices: roles,
     },
     {
-      type: "input",
-      name: "manager_id",
-      message: "Enter the manager for this employee:",
+      type: "list",
+      name: "manager",
+      choices: managers,
     },
   ]);
 
@@ -118,7 +118,10 @@ const init = async () => {
           // Logic to view all departments
           console.log("Viewing all departments...");
           await client_helper.getDepartments().catch((error) => {
-            console.error("An error occurred while fetching departments:", error);
+            console.error(
+              "An error occurred while fetching departments:",
+              error
+            );
           });
           break;
         case "View all roles":
@@ -145,7 +148,11 @@ const init = async () => {
         case "Add role":
           // Logic to add a role
           console.log("Adding a role...");
-          const roleData = await addRole();
+          const departments = await client_helper.getDepartments(false).catch((error) => {
+            console.error("An error occurred while fetching departments:", error);
+          });
+          const department_names = departments.map((dep) => dep.department_name);
+          const roleData = await addRole(department_names);
           await client_helper.addRole(roleData).catch((error) => {
             console.error("An error occurred while adding role:", error);
           });
@@ -153,12 +160,23 @@ const init = async () => {
         case "Add employee":
           // Logic to add an employee
           console.log("Adding an employee...");
-          const employeeData = await addEmployee();
+          const roles = await client_helper.getRoles(false).catch((error) => {
+            console.error("An error occurred while fetching roles:", error);
+          });
+          const role_names = roles.map((rol) => rol.title);
+
+          const managers = await client_helper.getEmployees(false).catch((error) => {
+            console.error("An error occurred while fetching managers:", error);
+          });
+          const manager_names = managers.map((man) => man.first_name);
+
+          const employeeData = await addEmployee(manager_names, role_names);
+
           await client_helper.addEmployee(employeeData).catch((error) => {
             console.error("An error occurred while adding employee:", error);
           });
           break;
-        case "Update an employee role":
+        case "Update employee role":
           // Logic to update an employee role
           console.log("Updating an employee role...");
           // const updateData = await updateEmployeeRole();

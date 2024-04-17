@@ -67,32 +67,52 @@ app.post('/api/add-department', (req, res) => {
 });
 
 app.post('/api/add-role', (req, res) => {
-  const { title, salary, department_id } = req.body;
-  pool.query('INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3) RETURNING *',
-    [title, salary, department_id],
-    (err, {rows}) => {
-      if (err) {
-        console.error('Error executing query', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json(rows[0]);
-      }
+  const { title, salary, department } = req.body;
+  pool.query('SELECT id FROM departments WHERE department_name=$1', [department])
+    .then(result => {
+      const departmentId = result.rows[0].id;
+
+      pool.query('INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3) RETURNING *',
+        [title, salary, departmentId],
+        (err, { rows }) => {
+          if (err) {
+            console.error('Error executing query', err);
+            res.status(500).json({ error: 'Internal server error' });
+          } else {
+            res.json(rows[0]);
+          }
+        });
+    })
+    .catch(err => {
+      console.error('Error executing query', err);
+      res.status(500).json({ error: 'Internal server error' });
     });
 });
 
 app.post('/api/add-employee', (req, res) => {
-  const { first_name, last_name, role_id, manager_id } = req.body;
-  pool.query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4) RETURNING *',
-    [first_name, last_name, role_id, manager_id],
-    (err, {rows}) => {
-      if (err) {
-        console.error('Error executing query', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json(rows[0]);
-      }
+  const { first_name, last_name, role, manager } = req.body;
+
+  let roleId;
+  pool.query('SELECT id FROM roles WHERE title=$1', [role])
+    .then(role_result => {
+      roleId = role_result.rows[0].id;
+      return pool.query('SELECT id FROM employees WHERE first_name=$1', [manager]);
+    })
+    .then(manager_result => {
+      const managerId = manager_result.rows[0].id;
+      return pool.query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4) RETURNING *',
+        [first_name, last_name, roleId, managerId]);
+    })
+    .then(({ rows }) => {
+      res.json(rows[0]);
+    })
+    .catch(err => {
+      console.error('Error executing query', err);
+      res.status(500).json({ error: 'Internal server error' });
     });
 });
+
+
 
 app.delete('/api/delete-employee/:id', (req, res) => {
   const employeeId = req.params.id;
