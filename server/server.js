@@ -51,6 +51,35 @@ app.get('/api/employees', (req, res) => {
   });
 });
 
+app.post('/api/add-department', (req, res) => {
+  const { department_name } = req.body;
+  console.log(req.body);
+  pool.query('INSERT INTO departments (department_name) VALUES ($1) RETURNING *',
+    [department_name],
+    (err, {rows}) => {
+      if (err) {
+        console.error('Error executing query', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(rows[0]);
+      }
+    });
+});
+
+app.post('/api/add-role', (req, res) => {
+  const { title, salary, department_id } = req.body;
+  pool.query('INSERT INTO roles (title, salary, department_id) VALUES ($1, $2, $3) RETURNING *',
+    [title, salary, department_id],
+    (err, {rows}) => {
+      if (err) {
+        console.error('Error executing query', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(rows[0]);
+      }
+    });
+});
+
 app.post('/api/add-employee', (req, res) => {
   const { first_name, last_name, role_id, manager_id } = req.body;
   pool.query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4) RETURNING *',
